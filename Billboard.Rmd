@@ -1,0 +1,300 @@
+---
+title: "Data Visualization Billboard Chart Hot 100"
+author: "Syabaruddin Malik"
+date: "3/30/2021"
+output: 
+  prettydoc::html_pretty:
+      theme: leonids
+      highlight: github
+      df_print : paged
+---
+# 
+
+
+![](C:\SyabaruddinFolder\Work\Algoritma\DATAVIZcourse\DataVisualization\DV/Billboard_Hot_100_logo.jpg)
+
+The Billboard Hot 100 is the music industry standard record chart in the United States for songs, published weekly by Billboard magazine. Chart rankings are based on sales, radio play, and online streaming in the United States.
+
+Every week, Billboard releases "The Hot 100" chart of songs that were trending on sales and airplay for that week. This dataset is a collection of all "The Hot 100" charts released since its inception in 1958.
+
+We will look at detail data of Billboard Hot 100 data from Kaggle.com to check and visualize the data. Data taken as of March 14, 2021
+
+![](C:\SyabaruddinFolder\Work\Algoritma\DATAVIZcourse\DataVisualization\DV/billboardold.jpg)
+
+
+# Data Exploratory and Explanatory
+
+Before we do the exploratory and explanatory data analysis, we will install all the library needed to support the data analysis.
+The libraries are ggplot2, lubridate, scales, dplyr, scales, skimr, readr.
+
+```{r echo=FALSE,results='hide',message=FALSE,warning=FALSE}
+library(dplyr)
+library(scales)
+library(skimr)
+library(readr)
+library(ggplot2)
+library(lubridate)
+library(ggwordcloud)
+library(treemapify)
+```
+
+
+After we install the libraries, we call the data and check all the detail of the data.
+
+```{r,message=FALSE,warning=FALSE}
+billboard <- read_csv("charts/charts.csv")
+glimpse(billboard)
+dim(billboard)
+```
+
+After we check, the dimension of the data is 326,687 rows and 7 columns. We also check the data types for every column. There are 4 columns that we have to change the data types
+
++ rank to factor data type. The reason is there are possibilities that 1 song or artist can rank more than 1 time in the billboard hot 100     chart
++ song to factor data type. The reason is there are possibilities that 1 song can rank more than 1 time in the billboard hot 100 chart
++ artist to factor data type. The reason is there are possibilities that 1 artist can rank more than 1 time in the billboard hot 100 chart
++ weeks-on-board to factor data type. The reason is there are possibilities that 1 song or artist can rank more than 1 weeks in the billboard   hot 100 chart
+
+
+We also found that there are 1 column (last-week column) that probably that we will not use. We can drop this column.
+
+```{r results='hide',message=FALSE,warning=FALSE}
+
+
+# Drop column
+billboard <- read_csv("charts/charts.csv")
+billboard <-
+  subset(billboard,
+         select = c("date", "rank", "song", "artist",
+                    "peak-rank", "weeks-on-board"))
+
+# Add column
+
+billboard$date  <- ymd(billboard$date)
+billboard$wday  <- wday(billboard$date, label = T)
+billboard$month <- month(billboard$date, label = T)
+billboard$year  <- year(billboard$date)
+
+# column set names
+
+billboard <-
+  setNames(
+    billboard,
+    c(
+      "Date",
+      "Rank",
+      "Song",
+      "Artist",
+      "Peak_Rank",
+      "Weeks_On_Board",
+      "Day_Rank",
+      "Month_Rank",
+      "Year_Rank"
+    )
+  )
+
+# Data type changes
+
+billboard$Rank             <- as.factor(billboard$Rank)
+billboard$Song             <- as.factor(billboard$Song)
+billboard$Artist           <- as.factor(billboard$Artist)
+billboard$Weeks_On_Board   <- as.factor(billboard$Weeks_On_Board)
+billboard$Year_Rank        <- as.factor(billboard$Year_Rank)
+
+
+```
+
+After we do a little bit of transformation in the data, we skim once again to check the detail of the data
+
+```{r}
+skim(billboard)
+```
+After we skim the data, everything is great. No missing value, all columns set, all the datatypes corrected.
+Now we will check the descriptive statisctic for the data.
+
+```{r}
+summary(billboard)
+```
+```{r}
+head(billboard)
+```
+
+# Visualization
+
+Now let's do the visualization. First, let's check who are the Top 20 Artists who have been made the longest reign in the Billboard Chart Hot 100.
+
+```{r fig.height=8,fig.width=10}
+
+artist1 <- billboard %>%
+  count(Artist) %>%
+  arrange(desc(n)) %>%
+  head(20)
+
+ggplot(artist1, aes(y=reorder(Artist,n), x=n)) +
+  geom_col(aes(fill = n), show.legend = F) +
+  scale_fill_gradient(low = "#4ef2e2", high = "#2b3bed") +
+  geom_text(aes(label = n), hjust = -0.3, size = 3.5) +
+  labs(
+    title = "Top 20 Artist With The Longest Reign ",
+    subtitle = "Billboard Chart Hot 100",
+    caption = "Source Data: Kaggle.com",
+    x = "Weeks",
+    y = ""
+  ) +
+  theme_bw()
+
+```
+
+Wow what a diverse list of Artists in the Top 20 longest weeks on Billboart chart Hot 100. However, Taylor Shift is the boss. She beats most of legendary Artists to be the longest reign artist in the Billboard Chart Hot 100 with a whooping total 1005 weeks. Crazy!
+
+Let's find out the Top 20 Artists with the most song entries in the Billboard Chart Hot 100
+
+```{r fig.height=8,fig.width=10,message=FALSE}
+
+sum1 <- billboard %>%
+  group_by(Artist, Song) %>%
+  summarise(Peak_Rank = sum(Peak_Rank))
+
+sum2 <- sum1 %>% group_by(Artist, Song) %>%
+  count(Song)
+
+sum3 <- sum2 %>% group_by(Artist) %>%
+  summarise(jumlah_lagu = sum(n)) %>%
+  arrange(desc(jumlah_lagu)) %>%
+  head(20)
+
+ggplot(sum3, aes(
+  area = jumlah_lagu,
+  label = reorder(Artist, jumlah_lagu),
+  fill = jumlah_lagu
+)) +
+  geom_treemap() +
+  geom_treemap_text(
+    place = "centre",
+    grow = T,
+    reflow = T,
+    colour =
+      "yellow",
+    fontface = "italic",
+    min.size = 5
+  ) +
+  theme(legend.position = "bottom") +
+  labs(
+    title = "Top 20 Artist with The Most Song Entries",
+    subtitle = "Billboard Chart Hot 100",
+    caption = "Source: Kaggle.com",
+    fill = "Number of Song Entries"
+  )
+
+  
+
+  
+
+
+```
+
+Wow, Glee TV Show is indeed one of the best pop culture in our lifetime. The songs by its casts are the most entries in the Billboard chart Hot 100 with 183 songs. It is crazy! 
+
+Let's check the Top 20 artists who have been reaching no 1 spot in Billboard hot 100 chart with the longest weeks of no 1 rank on the chart.
+
+```{r message=F,warning=FALSE, fig.height=15, fig.width=20}
+rank1 <- subset(billboard, subset = Rank == "1" & Peak_Rank == 1) %>%
+  arrange(desc(Weeks_On_Board))
+
+rank2 <- rank1 %>%
+  group_by(Artist) %>%
+  summarise(jumlah_Peak_Rank1 = sum(Peak_Rank)) %>%
+  arrange(desc(jumlah_Peak_Rank1)) %>%
+  filter(jumlah_Peak_Rank1 > 1) %>%
+  head(20)
+
+ggplot(rank2, aes(label = Artist, size = jumlah_Peak_Rank1)) +
+  geom_text_wordcloud_area(aes(col=jumlah_Peak_Rank1)) +
+  scale_size_area(max_size = 40) +
+  theme_bw()
+  
+
+```
+
+
+All the Artist in the the graphic are very iconic and our legendary diva Mariah Carey is the MVP. She is leading the pack as the most no 1 artist with the longest weeks reign on the no 1 rank. She even beats The Beatles, She is amazing!
+
+Next lets's check the Top 20 Songs which have been made the longest reign in the Billboard Chart Hot 10.
+
+
+```{r fig.height=8 ,fig.width=10}
+
+song1 <- billboard %>%
+  group_by(Song, Artist) %>%
+  count() %>%
+  arrange(desc(n)) %>%
+  head(20)
+
+ggplot(song1, aes(x = n, y = reorder(Song, n))) +
+  geom_col(aes(fill = n), show.legend = F) +
+  scale_fill_gradient(low = "firebrick", high = "dodgerblue4") +
+  geom_text(aes(label = Artist),
+            hjust = 1.1,
+            size = 3.5,
+            col = "white") +
+  geom_text(aes(label = n),
+            hjust = -0.2,
+            size = 3.5,
+            col = "black") +
+  labs(
+    title = "Top 20 Songs With The Longest Reign in Billboard Chart Hot 100",
+    caption = "Source Data: Kaggle.com",
+    x = "Weeks",
+    y = "",
+    fill = "Weeks"
+  ) +
+  theme_bw()
+```
+
+Wow it surprisingly Radioactive by Imagine Dragon that takes the crown as the longest reign song in Billboard Chart Hot 100. It is indeed a majestic song!
+
+Now lets check the Top 20 songs that has been reaching no 1 spot in Billboard hot 100 chart with the longest weeks on no 1 rank.
+
+```{r fig.height=8,fig.width= 10,warning=FALSE,message=FALSE}
+rank3 <- subset(billboard, subset = Rank == "1" & Peak_Rank == 1) %>%
+  arrange(desc(Weeks_On_Board))
+
+rank4 <- rank3 %>%
+  group_by(Song, Artist) %>%
+  summarise(jumlah_Peak_Rank3 = sum(Peak_Rank)) %>%
+  arrange(desc(jumlah_Peak_Rank3)) %>%
+  head(20)
+
+
+ggplot(rank4, aes(y = reorder(Song, jumlah_Peak_Rank3), x = jumlah_Peak_Rank3)) +
+  geom_col(aes(fill = jumlah_Peak_Rank3), show.legend = F) +
+  geom_text(aes(label = Artist),
+            hjust = 1.1,
+            col = "black",
+            size = 3.5) +
+  geom_text(
+    aes(label = jumlah_Peak_Rank3),
+    hjust = -0.3,
+    col = "black",
+    size = 3
+  ) +
+  scale_fill_gradient(low = "orange", high = "#e334e0") +
+  labs(
+    title = "Top 20 Song With The Longest Reign On No 1 Rank",
+    subtitle = "Billboard Hot 100 chart",
+    caption = "Source Data: Kaggle.com",
+    x = "Frequency no 1 rank",
+    y = ""
+  ) +
+  theme_bw()
+
+```
+
+Wow surprisingly "Old Town Road" by Lil Nas and Billy Ray Cyrus is on the top of the list. This song is very current and succesfully beats all massive songs in the list as the longest weeks in no 1 rank on the Billboard Chart Hot 100. Standing applause!
+
+
+
+
+
+
+
+
