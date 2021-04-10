@@ -2,7 +2,7 @@
 
 We will look at detail data of Billboard Hot 100 data from Kaggle.com to check and visualize the data. Data taken as of March 14, 2021
 
-I also publish this repository in Rpubs. Below the link:
+I publish this repository in Rpubs. Below the link:
 
 https://rpubs.com/syabaruddin/DV-Billboard-Chart-Hot-100
 
